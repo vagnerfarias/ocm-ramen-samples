@@ -1,0 +1,3 @@
+---
+resources:
+- busybox-statefulset.yaml

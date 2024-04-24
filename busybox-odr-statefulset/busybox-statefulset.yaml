@@ -1,0 +1,53 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  labels:
+    appname: busybox-ss
+  name: busybox
+spec:
+  serviceName: busybox-ss
+#  persistentVolumeClaimRetentionPolicy:
+#    whenDeleted: Retain
+#    whenScaled: Retain
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: busybox-pvc-ss
+        creationTimestamp: null
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: ocs-storagecluster-ceph-rbd
+        volumeMode: Filesystem
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: busybox-ss
+    spec:
+      containers:
+        - image: docker.io/library/busybox:stable
+          imagePullPolicy: IfNotPresent
+          name: busybox
+          command: ['sh', '-c', 'trap exit TERM; while true; do echo $(date) | tee -a /mnt/test/outfile; sync; sleep 1; done']      
+          volumeMounts:
+            - name: busybox-pvc-ss
+              mountPath: /mnt/test
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 10
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  selector:
+    matchLabels:
+      app: busybox-ss
